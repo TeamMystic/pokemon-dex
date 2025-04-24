@@ -115,6 +115,29 @@ function App() {
             onScroll={handleScroll}
             className="bg-blue-300 overflow-y-scroll h-screen"
           >
+            <div class="w-64 rounded-xl bg-gradient-to-br from-green-600 to-green-800 text-white p-4 relative overflow-hidden shadow-lg">
+              {/* <!-- Background Pokéball watermark --> */}
+              <div class="absolute right-2 bottom-2 opacity-10 text-[9rem] select-none pointer-events-none">
+                ⬤
+              </div>
+
+              {/* <!-- Pokémon Name and Number --> */}
+              <div class="relative z-10">
+                <h2 class="text-2xl font-bold">Bulbasaur</h2>
+                <p class="text-sm text-gray-200">#0001</p>
+                <p class="italic text-sm text-gray-300 mt-1">Grass, Poison</p>
+
+                {/* <!-- Type icons --> */}
+                <div class="flex space-x-2 mt-2">
+                  <span class="w-4 h-4 rounded-full bg-green-400"></span>
+                  <span class="w-4 h-4 rounded-full bg-purple-500"></span>
+                </div>
+              </div>
+
+              {/* <!-- Pokémon Image --> */}
+              <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png" alt="Bulbasaur"
+                class="absolute bottom-2 right-2 h-24 z-0 drop-shadow-xl" />
+            </div>
             <h1>Vite + React</h1>
             <div className="card">
               <button onClick={() => setCount((count) => count + 1)}>
@@ -128,6 +151,10 @@ function App() {
               Click on the Vite and React logos to learn more
             </p>
             <div className="pb-[999px]">d</div>
+
+
+
+
           </div>
         </div>
       </div>
