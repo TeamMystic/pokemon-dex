@@ -10,21 +10,32 @@ function App() {
   const [count, setCount] = useState(0);
   const scrollContainer = useRef();
   const [toBottom, settoBottom] = useState(false);
+  const [scrollTop, setscrollTop] = useState(0);
   const { dataQuery, search, type, attr } = useSearchPokemon(query, toBottom);
 
   const handleScroll = () => {
-    scrollContainer.current.scrollHeight - scrollContainer.current.scrollTop ===
-    scrollContainer.current.clientHeight
+    setscrollTop(scrollContainer.current.scrollTop);
+    Math.ceil(
+      scrollContainer.current.scrollTop + scrollContainer.current.clientHeight
+    ) >= scrollContainer.current.scrollHeight
       ? settoBottom(true)
       : settoBottom(false);
   };
 
+  useEffect(() => {
+    console.log(scrollContainer.current.scrollHeight, "this scroll height");
+    console.log(scrollContainer.current.scrollTop, "this scroll Top");
+    console.log(
+      scrollContainer.current.clientHeight + scrollContainer.current.scrollTop,
+      "this client height"
+    );
+  }, []);
   return (
     <>
       <div
         ref={scrollContainer}
         onScroll={handleScroll}
-        className="bg-blue-300 overflow-y-scroll h-96"
+        className="bg-blue-300 overflow-y-scroll h-screen"
       >
         <div>
           <a href="https://vite.dev" target="_blank">

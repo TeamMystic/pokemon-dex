@@ -10,6 +10,7 @@ function useSearchPokemon(query, toBottom) {
   });
   const offset = useRef(0);
   const phase2 = useRef(false);
+  const phase3 = useRef(false);
   const [dataAllSearch, setdataAllSearch] = useState([]);
   const [search, setsearch] = useState([]);
   const [type, settype] = useState([]);
@@ -88,8 +89,8 @@ function useSearchPokemon(query, toBottom) {
 
     if (
       dataQuery.type.length > 0 &&
-      dataQuery.q.length < 1 &&
-      dataQuery.gen.length < 1
+      dataQuery.q == "" &&
+      dataQuery.gen.length == 0
     ) {
       console.log("jika ada type tapi TIDAK ada search dan gen");
       searchByType();
@@ -97,8 +98,9 @@ function useSearchPokemon(query, toBottom) {
 
     if (
       dataQuery.attr.length > 0 &&
-      dataQuery.q.length < 1 &&
-      dataQuery.gen.length < 1
+      dataQuery.q == "" &&
+      dataQuery.gen.length == 0 &&
+      dataQuery.type.length == 0
     ) {
       console.log("jika ada attr tapi TIDAK ada search dan gen");
       searchByAttr();
@@ -116,8 +118,8 @@ function useSearchPokemon(query, toBottom) {
     // new Promise.all(
     if (dataAllSearch.length == 0) {
       offset.current += 24;
-      await data.results?.map(async (d) => {
-        if (d.name.includes(dataQuery.q)) {
+      await data.results.map(async (d) => {
+        if (d.name.includes(dataQuery.q.toLowerCase())) {
           const { data } = await axios.get(d.url);
           if (data.is_default) {
             if (dataQuery.type.length > 0) {
@@ -138,7 +140,7 @@ function useSearchPokemon(query, toBottom) {
       });
     } else {
       dataAllSearch.map(async (d) => {
-        if (d.name.includes(dataQuery.q)) {
+        if (d.name.includes(dataQuery.q.toLowerCase())) {
           const { data } = await axios.get(d.url);
           data.is_default &&
             setsearch((prev) => {
@@ -162,18 +164,15 @@ function useSearchPokemon(query, toBottom) {
         const { data } = await axios.get(
           `https://pokeapi.co/api/v2/generation/${g}`
         );
-        if (dataQuery.type.length == 0) {
-          setdataAllSearch((prev) => {
-            return prev.concat(data.pokemon_species);
-          });
-        }
+        setdataAllSearch((prev) => {
+          return prev.concat(data.pokemon_species);
+        });
         await data.pokemon_species?.map(async (d) => {
           if (dataQuery.q.length > 0) {
             if (d.name.includes(dataQuery.q)) {
               const { data } = await axios.get(d.url);
               data.varieties.map(async (t) => {
                 if (t.is_default) {
-                  console.log("ini masuk ke validation is default");
                   const { data } = await axios.get(t.pokemon.url);
                   const data3 = await data;
                   if (dataQuery.type.length > 0) {
@@ -214,20 +213,22 @@ function useSearchPokemon(query, toBottom) {
       });
     } else {
       dataAllSearch?.map(async (d) => {
-        if (d.name.includes(dataQuery.q) && dataQuery.q.length > 0) {
-          const { data } = await axios.get(d.url);
-          data.varieties.map(async (t) => {
-            if (t.is_default) {
-              const { data } = await axios.get(t.pokemon.url);
-              setsearch((prev) => {
-                return prev.find((t) => t.name === d.name)
-                  ? [...prev]
-                  : prev.length < offset.current
-                  ? [...prev, data]
-                  : [...prev];
-              });
-            }
-          });
+        if (dataQuery.q.length > 0) {
+          if (d.name.includes(dataQuery.q)) {
+            const { data } = await axios.get(d.url);
+            data.varieties.map(async (t) => {
+              if (t.is_default) {
+                const { data } = await axios.get(t.pokemon.url);
+                setsearch((prev) => {
+                  return prev.find((t) => t.name === d.name)
+                    ? [...prev]
+                    : prev.length < offset.current
+                    ? [...prev, data]
+                    : [...prev];
+                });
+              }
+            });
+          }
         } else {
           const { data } = await axios.get(d.url);
           data.varieties.map(async (t) => {
@@ -301,90 +302,330 @@ function useSearchPokemon(query, toBottom) {
         offset.current += 24;
         phase2.current = true;
       }
-      dataQuery.type.map(async (t) => {
-        const { data } = await axios.get(`https://pokeapi.co/api/v2/type/${t}`);
-        await data.pokemon.map(async (d) => {
-          const { data } = await axios.get(d.pokemon.url);
-          if (data.is_default) {
-            if (dataAllSearch.length == 0) {
-              setdataAllSearch((prev) => {
-                return [...prev, data];
-              });
-            }
-            if (dataQuery.type.length == 2) {
-              if (
-                data.types.find((element) =>
-                  element.type.name.includes(dataQuery.type[0])
-                ) &&
-                data.types.find((element) =>
-                  element.type.name.includes(dataQuery.type[1])
-                )
-              ) {
-                settype((prev) => {
-                  return prev.length < offset.current
-                    ? [...prev, data]
-                    : [...prev];
-                });
-              }
-            } else {
+
+      if (dataAllSearch.length > 0) {
+        dataAllSearch.map((data) => {
+          if (dataQuery.type.length == 2) {
+            if (
+              data.types.find((element) =>
+                element.type.name.includes(dataQuery.type[0])
+              ) &&
+              data.types.find((element) =>
+                element.type.name.includes(dataQuery.type[1])
+              )
+            ) {
               settype((prev) => {
-                return prev.length < offset.current
+                return prev.find((t) => t.id === data.id)
+                  ? [...prev]
+                  : prev.length < offset.current
                   ? [...prev, data]
                   : [...prev];
               });
             }
+          } else {
+            settype((prev) => {
+              return prev.find((t) => t.id === data.id)
+                ? [...prev]
+                : prev.length < offset.current
+                ? [...prev, data]
+                : [...prev];
+            });
           }
         });
-      });
+      }
+
+      if (dataAllSearch.length == 0) {
+        dataQuery.type.map(async (t) => {
+          const { data } = await axios.get(
+            `https://pokeapi.co/api/v2/type/${t}`
+          );
+          await data.pokemon.map(async (d) => {
+            const { data } = await axios.get(d.pokemon.url);
+            if (data.is_default) {
+              if (dataAllSearch.length == 0 && dataQuery.attr.length == 0) {
+                setdataAllSearch((prev) => {
+                  return [...prev, data];
+                });
+              }
+
+              if (dataQuery.type.length == 2) {
+                if (
+                  data.types.find((element) =>
+                    element.type.name.includes(dataQuery.type[0])
+                  ) &&
+                  data.types.find((element) =>
+                    element.type.name.includes(dataQuery.type[1])
+                  )
+                ) {
+                  if (dataAllSearch.length == 0 && dataQuery.attr.length > 0) {
+                    setdataAllSearch((prev) => {
+                      return [...prev, data];
+                    });
+                  } else {
+                    settype((prev) => {
+                      return prev.find((t) => t.name === d.name)
+                        ? [...prev]
+                        : prev.length < offset.current
+                        ? [...prev, data]
+                        : [...prev];
+                    });
+                  }
+                }
+              } else {
+                if (dataAllSearch.length == 0 && dataQuery.attr.length > 0) {
+                  setdataAllSearch((prev) => {
+                    return [...prev, data];
+                  });
+                } else {
+                  settype((prev) => {
+                    return prev.find((t) => t.name === d.name)
+                      ? [...prev]
+                      : prev.length < offset.current
+                      ? [...prev, data]
+                      : [...prev];
+                  });
+                }
+              }
+            }
+          });
+        });
+      }
     }
   };
 
   const searchByAttr = async () => {
-    if (
-      dataQuery.q === "" &&
-      dataQuery.gen.length === 0 &&
-      dataQuery.type.length < 0
-    ) {
-      const { data } = await axios.get(
-        "https://pokeapi.co/api/v2/pokemon-species/?limit=100000&offset=0"
-      );
-      await data.results.map(async (d) => {
-        const { data } = await axios.get(d.url);
-        const data2 = await data;
-        dataQuery.attr.map(async (r) => {
-          if (r === "baby") {
-            if (data2.is_baby) {
-              const { data } = await axios.get(data2.varieties[0].pokemon.url);
-              const data3 = await data;
-              setattr((prev) => {
-                return prev.find((t) => t.id === data3.id)
-                  ? [...prev]
-                  : [...prev, data3];
+    if (dataAllSearch.length > 0) {
+      if (
+        dataQuery.q === "" &&
+        dataQuery.gen.length === 0 &&
+        dataQuery.type.length === 0
+      ) {
+        dataAllSearch.map((d) => {
+          dataQuery.attr.map(async (r) => {
+            if (r === "baby") {
+              if (d.is_baby) {
+                const { data } = await axios.get(d.varieties[0].pokemon.url);
+                setattr((prev) => {
+                  return prev.find((t) => t.id === data.id)
+                    ? [...prev]
+                    : prev.length < offset.current
+                    ? [...prev, data]
+                    : [...prev];
+                });
+              }
+            } else if (r === "legendary") {
+              if (d.is_legendary) {
+                const { data } = await axios.get(d.varieties[0].pokemon.url);
+                setattr((prev) => {
+                  return prev.find((t) => t.id === data.id)
+                    ? [...prev]
+                    : prev.length < offset.current
+                    ? [...prev, data]
+                    : [...prev];
+                });
+              }
+            } else if (r === "mythical") {
+              if (d.is_mythical) {
+                const { data } = await axios.get(d.varieties[0].pokemon.url);
+                setattr((prev) => {
+                  return prev.find((t) => t.id === data.id)
+                    ? [...prev]
+                    : prev.length < offset.current
+                    ? [...prev, data]
+                    : [...prev];
+                });
+              }
+            } else if (r === "has-gmax") {
+              d.varieties.map(async (Variants) => {
+                if (Variants.pokemon.name.includes("gmax")) {
+                  const { data } = await axios.get(d.varieties[0].pokemon.url);
+                  setattr((prev) => {
+                    return prev.find((t) => t.id === data.id)
+                      ? [...prev]
+                      : prev.length < offset.current
+                      ? [...prev, data]
+                      : [...prev];
+                  });
+                }
+              });
+            } else if (r === "has-mega") {
+              d.varieties.map(async (Variants) => {
+                if (Variants.pokemon.name.includes("mega")) {
+                  const { data } = await axios.get(d.varieties[0].pokemon.url);
+                  setattr((prev) => {
+                    return prev.find((t) => t.id === data.id)
+                      ? [...prev]
+                      : prev.length < offset.current
+                      ? [...prev, data]
+                      : [...prev];
+                  });
+                }
               });
             }
-          } else if (r === "legendary") {
-            if (data2.is_legendary) {
-              const { data } = await axios.get(data2.varieties[0].pokemon.url);
-              const data3 = await data;
-              setattr((prev) => {
-                return prev.find((t) => t.id === data.id)
-                  ? [...prev]
-                  : [...prev, data3];
+          });
+        });
+      } else if (dataQuery.type.length > 0 && type.length == 0) {
+        dataAllSearch.map(async (d) => {
+          const { data } = await axios.get(
+            `https://pokeapi.co/api/v2/pokemon-species/${d.id}`
+          );
+          dataQuery.attr.map(async (r) => {
+            if (r === "baby") {
+              if (data.is_baby) {
+                setattr((prev) => {
+                  return prev.find((t) => t.id === d.id)
+                    ? [...prev]
+                    : prev.length < offset.current
+                    ? [...prev, d]
+                    : [...prev];
+                });
+              }
+            } else if (r === "legendary") {
+              if (data.is_legendary) {
+                setattr((prev) => {
+                  return prev.find((t) => t.id === d.id)
+                    ? [...prev]
+                    : prev.length < offset.current
+                    ? [...prev, d]
+                    : [...prev];
+                });
+              }
+            } else if (r === "mythical") {
+              if (data.is_mythical) {
+                setattr((prev) => {
+                  return prev.find((t) => t.id === d.id)
+                    ? [...prev]
+                    : prev.length < offset.current
+                    ? [...prev, d]
+                    : [...prev];
+                });
+              }
+            } else if (r === "has-gmax") {
+              data.varieties.map(async (Variants) => {
+                if (Variants.pokemon.name.includes("gmax")) {
+                  setattr((prev) => {
+                    return prev.find((t) => t.id === d.id)
+                      ? [...prev]
+                      : prev.length < offset.current
+                      ? [...prev, d]
+                      : [...prev];
+                  });
+                }
+              });
+            } else if (r === "has-mega") {
+              data.varieties.map(async (Variants) => {
+                if (Variants.pokemon.name.includes("mega")) {
+                  setattr((prev) => {
+                    return prev.find((t) => t.id === d.id)
+                      ? [...prev]
+                      : prev.length < offset.current
+                      ? [...prev, d]
+                      : [...prev];
+                  });
+                }
               });
             }
-          } else if (r === "mythical") {
-            if (data2.is_mythical) {
-              const { data } = await axios.get(data2.varieties[0].pokemon.url);
-              const data3 = await data;
-              setattr((prev) => {
-                return prev.find((t) => t.id === data.id)
-                  ? [...prev]
-                  : [...prev, data3];
+          });
+        });
+      } else {
+        type.map(async (d) => {
+          const { data } = await axios.get(
+            `https://pokeapi.co/api/v2/pokemon-species/${d.id}`
+          );
+          dataQuery.attr.map(async (r) => {
+            if (r === "baby") {
+              if (data.is_baby) {
+                setattr((prev) => {
+                  return prev.find((t) => t.id === d.id)
+                    ? [...prev]
+                    : prev.length < offset.current
+                    ? [...prev, d]
+                    : [...prev];
+                });
+              }
+            } else if (r === "legendary") {
+              if (data.is_legendary) {
+                setattr((prev) => {
+                  return prev.find((t) => t.id === d.id)
+                    ? [...prev]
+                    : prev.length < offset.current
+                    ? [...prev, d]
+                    : [...prev];
+                });
+              }
+            } else if (r === "mythical") {
+              if (data.is_mythical) {
+                setattr((prev) => {
+                  return prev.find((t) => t.id === d.id)
+                    ? [...prev]
+                    : prev.length < offset.current
+                    ? [...prev, d]
+                    : [...prev];
+                });
+              }
+            } else if (r === "has-gmax") {
+              data.varieties.map(async (Variants) => {
+                if (Variants.pokemon.name.includes("gmax")) {
+                  setattr((prev) => {
+                    return prev.find((t) => t.id === d.id)
+                      ? [...prev]
+                      : prev.length < offset.current
+                      ? [...prev, d]
+                      : [...prev];
+                  });
+                }
+              });
+            } else if (r === "has-mega") {
+              data.varieties.map(async (Variants) => {
+                if (Variants.pokemon.name.includes("mega")) {
+                  setattr((prev) => {
+                    return prev.find((t) => t.id === d.id)
+                      ? [...prev]
+                      : prev.length < offset.current
+                      ? [...prev, d]
+                      : [...prev];
+                  });
+                }
               });
             }
-          } else if (r === "has-gmax") {
-            data2.varieties.map(async (Variants) => {
-              if (Variants.pokemon.name.includes("gmax")) {
+          });
+        });
+      }
+    } else {
+      if (
+        dataQuery.q === "" &&
+        dataQuery.gen.length === 0 &&
+        dataQuery.type.length === 0
+      ) {
+        const { data } = await axios.get(
+          "https://pokeapi.co/api/v2/pokemon-species/?limit=100000&offset=0"
+        );
+        if (dataAllSearch.length == 0) {
+          offset.current += 24;
+        }
+        await data.results.map(async (d) => {
+          const { data } = await axios.get(d.url);
+          const data2 = await data;
+          setdataAllSearch((prev) => {
+            return [...prev, data2];
+          });
+          dataQuery.attr.map(async (r) => {
+            if (r === "baby") {
+              if (data2.is_baby) {
+                const { data } = await axios.get(
+                  data2.varieties[0].pokemon.url
+                );
+                const data3 = await data;
+                setattr((prev) => {
+                  return prev.find((t) => t.id === data3.id)
+                    ? [...prev]
+                    : prev.length < offset.current
+                    ? [...prev, data3]
+                    : [...prev];
+                });
+              }
+            } else if (r === "legendary") {
+              if (data2.is_legendary) {
                 const { data } = await axios.get(
                   data2.varieties[0].pokemon.url
                 );
@@ -392,13 +633,13 @@ function useSearchPokemon(query, toBottom) {
                 setattr((prev) => {
                   return prev.find((t) => t.id === data.id)
                     ? [...prev]
-                    : [...prev, data3];
+                    : prev.length < offset.current
+                    ? [...prev, data3]
+                    : [...prev];
                 });
               }
-            });
-          } else if (r === "has-mega") {
-            data2.varieties.map(async (Variants) => {
-              if (Variants.pokemon.name.includes("mega")) {
+            } else if (r === "mythical") {
+              if (data2.is_mythical) {
                 const { data } = await axios.get(
                   data2.varieties[0].pokemon.url
                 );
@@ -406,119 +647,157 @@ function useSearchPokemon(query, toBottom) {
                 setattr((prev) => {
                   return prev.find((t) => t.id === data.id)
                     ? [...prev]
-                    : [...prev, data3];
+                    : prev.length < offset.current
+                    ? [...prev, data3]
+                    : [...prev];
                 });
               }
-            });
-          }
+            } else if (r === "has-gmax") {
+              data2.varieties.map(async (Variants) => {
+                if (Variants.pokemon.name.includes("gmax")) {
+                  const { data } = await axios.get(
+                    data2.varieties[0].pokemon.url
+                  );
+                  const data3 = await data;
+                  setattr((prev) => {
+                    return prev.find((t) => t.id === data.id)
+                      ? [...prev]
+                      : prev.length < offset.current
+                      ? [...prev, data3]
+                      : [...prev];
+                  });
+                }
+              });
+            } else if (r === "has-mega") {
+              data2.varieties.map(async (Variants) => {
+                if (Variants.pokemon.name.includes("mega")) {
+                  const { data } = await axios.get(
+                    data2.varieties[0].pokemon.url
+                  );
+                  const data3 = await data;
+                  setattr((prev) => {
+                    return prev.find((t) => t.id === data.id)
+                      ? [...prev]
+                      : prev.length < offset.current
+                      ? [...prev, data3]
+                      : [...prev];
+                  });
+                }
+              });
+            }
+          });
         });
-      });
-    } else if (dataQuery.type.length > 0) {
-      type.map(async (d) => {
-        const { data } = await axios.get(
-          `https://pokeapi.co/api/v2/pokemon-species/${d.id}`
-        );
-        dataQuery.attr.map(async (r) => {
-          if (r === "baby") {
-            if (data.is_baby) {
-              setattr((prev) => {
-                return prev.find((t) => t.id === d.id)
-                  ? [...prev]
-                  : [...prev, d];
-              });
-            }
-          } else if (r === "legendary") {
-            if (data.is_legendary) {
-              setattr((prev) => {
-                return prev.find((t) => t.id === d.id)
-                  ? [...prev]
-                  : [...prev, d];
-              });
-            }
-          } else if (r === "mythical") {
-            if (data.is_mythical) {
-              setattr((prev) => {
-                return prev.find((t) => t.id === d.id)
-                  ? [...prev]
-                  : [...prev, d];
-              });
-            }
-          } else if (r === "has-gmax") {
-            data.varieties.map(async (Variants) => {
-              if (Variants.pokemon.name.includes("gmax")) {
-                setattr((prev) => {
-                  return prev.find((t) => t.id === d.id)
-                    ? [...prev]
-                    : [...prev, d];
-                });
-              }
-            });
-          } else if (r === "has-mega") {
-            data.varieties.map(async (Variants) => {
-              if (Variants.pokemon.name.includes("mega")) {
-                setattr((prev) => {
-                  return prev.find((t) => t.id === d.id)
-                    ? [...prev]
-                    : [...prev, d];
-                });
-              }
-            });
-          }
-        });
-      });
-    } else if (dataQuery.q || dataQuery.gen.length > 0) {
-      search.map(async (d) => {
-        const { data } = await axios.get(
-          `https://pokeapi.co/api/v2/pokemon-species/${d.id}`
-        );
-        dataQuery.attr.map(async (r) => {
-          if (r === "baby") {
-            if (data.is_baby) {
-              setattr((prev) => {
-                return prev.find((t) => t.id === d.id)
-                  ? [...prev]
-                  : [...prev, d];
-              });
-            }
-          } else if (r === "legendary") {
-            if (data.is_legendary) {
-              setattr((prev) => {
-                return prev.find((t) => t.id === d.id)
-                  ? [...prev]
-                  : [...prev, d];
-              });
-            }
-          } else if (r === "mythical") {
-            if (data.is_mythical) {
-              setattr((prev) => {
-                return prev.find((t) => t.id === d.id)
-                  ? [...prev]
-                  : [...prev, d];
-              });
-            }
-          } else if (r === "has-gmax") {
-            data.varieties.map(async (Variants) => {
-              if (Variants.pokemon.name.includes("gmax")) {
-                setattr((prev) => {
-                  return prev.find((t) => t.id === d.id)
-                    ? [...prev]
-                    : [...prev, d];
-                });
-              }
-            });
-          } else if (r === "has-mega") {
-            data.varieties.map(async (Variants) => {
-              if (Variants.pokemon.name.includes("mega")) {
-                setattr((prev) => {
-                  return prev.find((t) => t.id === d.id)
-                    ? [...prev]
-                    : [...prev, d];
-                });
-              }
-            });
-          }
-        });
-      });
+      }
+      // else if (
+      //   dataQuery.type.length > 0 &&
+      //   (dataQuery.q || dataQuery.gen.length > 0)
+      // ) {
+      //   type.map(async (d) => {
+      //     const { data } = await axios.get(
+      //       `https://pokeapi.co/api/v2/pokemon-species/${d.id}`
+      //     );
+      //     dataQuery.attr.map(async (r) => {
+      //       if (r === "baby") {
+      //         if (data.is_baby) {
+      //           setattr((prev) => {
+      //             return prev.find((t) => t.id === d.id)
+      //               ? [...prev]
+      //               : [...prev, d];
+      //           });
+      //         }
+      //       } else if (r === "legendary") {
+      //         if (data.is_legendary) {
+      //           setattr((prev) => {
+      //             return prev.find((t) => t.id === d.id)
+      //               ? [...prev]
+      //               : [...prev, d];
+      //           });
+      //         }
+      //       } else if (r === "mythical") {
+      //         if (data.is_mythical) {
+      //           setattr((prev) => {
+      //             return prev.find((t) => t.id === d.id)
+      //               ? [...prev]
+      //               : [...prev, d];
+      //           });
+      //         }
+      //       } else if (r === "has-gmax") {
+      //         data.varieties.map(async (Variants) => {
+      //           if (Variants.pokemon.name.includes("gmax")) {
+      //             setattr((prev) => {
+      //               return prev.find((t) => t.id === d.id)
+      //                 ? [...prev]
+      //                 : [...prev, d];
+      //             });
+      //           }
+      //         });
+      //       } else if (r === "has-mega") {
+      //         data.varieties.map(async (Variants) => {
+      //           if (Variants.pokemon.name.includes("mega")) {
+      //             setattr((prev) => {
+      //               return prev.find((t) => t.id === d.id)
+      //                 ? [...prev]
+      //                 : [...prev, d];
+      //             });
+      //           }
+      //         });
+      //       }
+      //     });
+      //   });
+      // } else if (dataQuery.q || dataQuery.gen.length > 0) {
+      //   search.map(async (d) => {
+      //     const { data } = await axios.get(
+      //       `https://pokeapi.co/api/v2/pokemon-species/${d.id}`
+      //     );
+      //     dataQuery.attr.map(async (r) => {
+      //       if (r === "baby") {
+      //         if (data.is_baby) {
+      //           setattr((prev) => {
+      //             return prev.find((t) => t.id === d.id)
+      //               ? [...prev]
+      //               : [...prev, d];
+      //           });
+      //         }
+      //       } else if (r === "legendary") {
+      //         if (data.is_legendary) {
+      //           setattr((prev) => {
+      //             return prev.find((t) => t.id === d.id)
+      //               ? [...prev]
+      //               : [...prev, d];
+      //           });
+      //         }
+      //       } else if (r === "mythical") {
+      //         if (data.is_mythical) {
+      //           setattr((prev) => {
+      //             return prev.find((t) => t.id === d.id)
+      //               ? [...prev]
+      //               : [...prev, d];
+      //           });
+      //         }
+      //       } else if (r === "has-gmax") {
+      //         data.varieties.map(async (Variants) => {
+      //           if (Variants.pokemon.name.includes("gmax")) {
+      //             setattr((prev) => {
+      //               return prev.find((t) => t.id === d.id)
+      //                 ? [...prev]
+      //                 : [...prev, d];
+      //             });
+      //           }
+      //         });
+      //       } else if (r === "has-mega") {
+      //         data.varieties.map(async (Variants) => {
+      //           if (Variants.pokemon.name.includes("mega")) {
+      //             setattr((prev) => {
+      //               return prev.find((t) => t.id === d.id)
+      //                 ? [...prev]
+      //                 : [...prev, d];
+      //             });
+      //           }
+      //         });
+      //       }
+      //     });
+      //   });
+      // }
     }
   };
 
@@ -530,13 +809,14 @@ function useSearchPokemon(query, toBottom) {
       attr: [],
     });
     offset.current = 0;
+    phase2.current = false;
     setdataAllSearch([]);
     setsearch([]);
 
     if (query == undefined) {
       fetchPokemon();
     }
-  }, []);
+  }, [query]);
 
   useEffect(() => {
     searchPokemon();
@@ -557,9 +837,9 @@ function useSearchPokemon(query, toBottom) {
 
     if (dataAllSearch.length > 0) {
       setTimeout(() => {
-        if (dataQuery.type.length > 0 && phase2 == false) {
+        if (dataQuery.type.length > 0 && phase2.current == false) {
           searchByType();
-        } else if (dataQuery.attr.length > 0) {
+        } else if (dataQuery.type.length > 0 && dataQuery.attr.length > 0) {
           searchByAttr();
         }
       }, 1500);
@@ -603,13 +883,12 @@ function useSearchPokemon(query, toBottom) {
       if (dataQuery.type.length > 0) {
         searchByType();
       }
+
+      if (dataQuery.attr.length > 0) {
+        searchByAttr();
+      }
     }
   }, [toBottom]);
-
-  // useEffect(() => {
-  //   console.log(limit.current);
-  //   // fetchPokemon();
-  // }, [limit.current]);
 
   return { dataQuery, search, type, attr };
 }
