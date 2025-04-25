@@ -186,7 +186,7 @@ function App() {
           </div>
         </div>
 
-        <div className="pt-12 mb-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="pt-12 mb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
           {loopUse.attr && (
             <div class="w-full rounded-xl bg-gradient-to-br from-green-600 to-green-800 text-white p-4 relative overflow-hidden shadow-lg">
               {/* <!-- Background Pokéball watermark --> */}
