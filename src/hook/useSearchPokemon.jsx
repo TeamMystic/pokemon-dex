@@ -76,13 +76,10 @@ function useSearchPokemon(query, toBottom) {
 
   const searchPokemon = async () => {
     if (dataQuery.q && dataQuery.gen.length > 0) {
-      console.log("jika search ada dan gen ada");
       searchByGen();
     } else if (dataQuery.q) {
-      console.log("jika search ada, gen tidak ad");
       searchAll();
     } else if (dataQuery.gen.length > 0) {
-      console.log("jika gen ada, search tidak ada");
       searchByGen();
     }
 
@@ -91,7 +88,6 @@ function useSearchPokemon(query, toBottom) {
       dataQuery.q == "" &&
       dataQuery.gen.length == 0
     ) {
-      console.log("jika ada type tapi TIDAK ada search dan gen");
       searchByType();
     }
 
@@ -101,7 +97,6 @@ function useSearchPokemon(query, toBottom) {
       dataQuery.gen.length == 0 &&
       dataQuery.type.length == 0
     ) {
-      console.log("jika ada attr tapi TIDAK ada search dan gen");
       searchByAttr();
     }
   };
@@ -819,7 +814,6 @@ function useSearchPokemon(query, toBottom) {
 
   useEffect(() => {
     searchPokemon();
-    console.log(dataQuery);
   }, [dataQuery]);
 
   useEffect(() => {
@@ -843,7 +837,6 @@ function useSearchPokemon(query, toBottom) {
         }
       }, 1500);
     }
-    console.log(search, "this search ing by name and gen", dataAllSearch);
   }, [search, dataAllSearch]);
 
   useEffect(() => {
@@ -852,12 +845,7 @@ function useSearchPokemon(query, toBottom) {
         searchByAttr();
       }
     }, 1500);
-    console.log(type, "this by type pokemon");
   }, [type]);
-
-  useEffect(() => {
-    console.log(attr, "this by attr rare");
-  }, [attr]);
 
   useEffect(() => {
     toBottom && (offset.current += 24);

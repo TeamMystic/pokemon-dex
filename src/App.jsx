@@ -1,20 +1,9 @@
 import {
-  Menu,
-  MenuButton,
-  MenuItem,
-  MenuItems,
   Listbox,
   ListboxButton,
   ListboxOption,
   ListboxOptions,
 } from "@headlessui/react";
-import {
-  ArchiveBoxXMarkIcon,
-  ChevronDownIcon,
-  PencilIcon,
-  Square2StackIcon,
-  TrashIcon,
-} from "@heroicons/react/16/solid";
 import Navbar from "./components/Navbar";
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
