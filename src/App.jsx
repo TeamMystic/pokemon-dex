@@ -92,7 +92,11 @@ function App() {
           queryNavigate.current = "";
           navigate("/");
         } else {
-          queryNavigate.current += `q=${searchPokemon}`;
+          if (queryNavigate.current.length > 0) {
+            queryNavigate.current = `q=${searchPokemon}`;
+          } else {
+            queryNavigate.current += `q=${searchPokemon}`;
+          }
           navigate(`/${queryNavigate.current}`);
         }
       }, 2000);
