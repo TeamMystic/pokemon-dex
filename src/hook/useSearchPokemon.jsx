@@ -238,19 +238,6 @@ function useSearchPokemon(query, toBottom) {
             }
           });
         }
-        // const { data } = await axios.get(d.url);
-        // data.varieties.map(async (t) => {
-        //   if (t.is_default) {
-        //     const { data } = await axios.get(t.pokemon.url);
-        //     setsearch((prev) => {
-        //       return prev.find((t) => t.name === d.name)
-        //         ? [...prev]
-        //         : prev.length < offset.current
-        //         ? [...prev, data]
-        //         : [...prev];
-        //     });
-        //   }
-        // });
       });
     }
   };
@@ -682,116 +669,6 @@ function useSearchPokemon(query, toBottom) {
           });
         });
       }
-      // else if (
-      //   dataQuery.type.length > 0 &&
-      //   (dataQuery.q || dataQuery.gen.length > 0)
-      // ) {
-      //   type.map(async (d) => {
-      //     const { data } = await axios.get(
-      //       `https://pokeapi.co/api/v2/pokemon-species/${d.id}`
-      //     );
-      //     dataQuery.attr.map(async (r) => {
-      //       if (r === "baby") {
-      //         if (data.is_baby) {
-      //           setattr((prev) => {
-      //             return prev.find((t) => t.id === d.id)
-      //               ? [...prev]
-      //               : [...prev, d];
-      //           });
-      //         }
-      //       } else if (r === "legendary") {
-      //         if (data.is_legendary) {
-      //           setattr((prev) => {
-      //             return prev.find((t) => t.id === d.id)
-      //               ? [...prev]
-      //               : [...prev, d];
-      //           });
-      //         }
-      //       } else if (r === "mythical") {
-      //         if (data.is_mythical) {
-      //           setattr((prev) => {
-      //             return prev.find((t) => t.id === d.id)
-      //               ? [...prev]
-      //               : [...prev, d];
-      //           });
-      //         }
-      //       } else if (r === "has-gmax") {
-      //         data.varieties.map(async (Variants) => {
-      //           if (Variants.pokemon.name.includes("gmax")) {
-      //             setattr((prev) => {
-      //               return prev.find((t) => t.id === d.id)
-      //                 ? [...prev]
-      //                 : [...prev, d];
-      //             });
-      //           }
-      //         });
-      //       } else if (r === "has-mega") {
-      //         data.varieties.map(async (Variants) => {
-      //           if (Variants.pokemon.name.includes("mega")) {
-      //             setattr((prev) => {
-      //               return prev.find((t) => t.id === d.id)
-      //                 ? [...prev]
-      //                 : [...prev, d];
-      //             });
-      //           }
-      //         });
-      //       }
-      //     });
-      //   });
-      // } else if (dataQuery.q || dataQuery.gen.length > 0) {
-      //   search.map(async (d) => {
-      //     const { data } = await axios.get(
-      //       `https://pokeapi.co/api/v2/pokemon-species/${d.id}`
-      //     );
-      //     dataQuery.attr.map(async (r) => {
-      //       if (r === "baby") {
-      //         if (data.is_baby) {
-      //           setattr((prev) => {
-      //             return prev.find((t) => t.id === d.id)
-      //               ? [...prev]
-      //               : [...prev, d];
-      //           });
-      //         }
-      //       } else if (r === "legendary") {
-      //         if (data.is_legendary) {
-      //           setattr((prev) => {
-      //             return prev.find((t) => t.id === d.id)
-      //               ? [...prev]
-      //               : [...prev, d];
-      //           });
-      //         }
-      //       } else if (r === "mythical") {
-      //         if (data.is_mythical) {
-      //           setattr((prev) => {
-      //             return prev.find((t) => t.id === d.id)
-      //               ? [...prev]
-      //               : [...prev, d];
-      //           });
-      //         }
-      //       } else if (r === "has-gmax") {
-      //         data.varieties.map(async (Variants) => {
-      //           if (Variants.pokemon.name.includes("gmax")) {
-      //             setattr((prev) => {
-      //               return prev.find((t) => t.id === d.id)
-      //                 ? [...prev]
-      //                 : [...prev, d];
-      //             });
-      //           }
-      //         });
-      //       } else if (r === "has-mega") {
-      //         data.varieties.map(async (Variants) => {
-      //           if (Variants.pokemon.name.includes("mega")) {
-      //             setattr((prev) => {
-      //               return prev.find((t) => t.id === d.id)
-      //                 ? [...prev]
-      //                 : [...prev, d];
-      //             });
-      //           }
-      //         });
-      //       }
-      //     });
-      //   });
-      // }
     }
   };
 

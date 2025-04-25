@@ -105,20 +105,21 @@ function App() {
       }, 2000);
     };
 
-    if (searchPokemon.length > 0) {
-      navigasiQuery();
-    }
+    navigasiQuery();
   }, [searchPokemon]);
 
   useEffect(() => {
     const navigateGen = () => {
       setTimeout(() => {
-        queryNavigate.current += `&gen=${selectedgen.join(".")}`;
+        if (queryNavigate.current.length > 0) {
+          queryNavigate.current += `&gen=${selectedgen.join(".")}`;
+        } else {
+          queryNavigate.current += `gen=${selectedgen.join(".")}`;
+        }
         navigate(`/${queryNavigate.current}`);
       }, 2000);
     };
-
-    if (queryNavigate.current.length > 0) {
+    if (selectedgen.length > 0) {
       navigateGen();
     }
   }, [selectedgen]);
