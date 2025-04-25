@@ -3,7 +3,7 @@ import TeamMystic from "../assets/TeamMystic.png";
 
 function Navbar() {
   return (
-    <header className="sticky top-0 bg-[#1d2932] border-b border-[#262f3b]">
+    <header className="sticky top-0 z-[100] bg-[#1d2932] border-b border-[#262f3b]">
       <div className="mx-auto max-w-[80rem] flex items-center px-3.5 md:px-6 lg:px-8 h-16">
         <a href="/" className="flex items-center">
           <img
