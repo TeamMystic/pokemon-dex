@@ -19,7 +19,6 @@ function App() {
   const [selectedgen, setSelectedgen] = useState([]);
   const scrollContainer = useRef();
   const [toBottom, settoBottom] = useState(false);
-  const [scrollTop, setscrollTop] = useState(0);
   const { dataQuery, search, type, attr } = useSearchPokemon(query, toBottom);
   const [loopUse, setloopUse] = useState({
     search: false,
@@ -74,19 +73,12 @@ function App() {
   const navigate = useNavigate();
 
   const handleScroll = () => {
-    setscrollTop(scrollContainer.current.scrollTop);
     Math.ceil(
       scrollContainer.current.scrollTop + scrollContainer.current.clientHeight
     ) >= scrollContainer.current.scrollHeight
       ? settoBottom(true)
       : settoBottom(false);
   };
-
-  useEffect(() => {
-    Math.ceil(
-      scrollContainer.current.scrollTop + scrollContainer.current.clientHeight
-    );
-  }, [scrollTop]);
 
   useEffect(() => {
     const navigasiQuery = () => {
@@ -178,30 +170,43 @@ function App() {
 
           <div className="pt-12 pb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
             {loopUse.attr && (
-              <div class="w-full rounded-xl bg-gradient-to-br from-green-600 to-green-800 text-white p-4 relative overflow-hidden shadow-lg">
-                {/* <!-- Background Pokéball watermark --> */}
-                <div class="absolute right-2 bottom-2 opacity-10 text-[9rem] select-none pointer-events-none">
-                  ⬤
-                </div>
-                {/* <!-- Pokémon Name and Number --> */}
-                <div class="relative z-10">
-                  <h2 class="text-2xl font-bold">Bulbasaur</h2>
-                  <p class="text-sm text-gray-200">#0001</p>
-                  <p class="italic text-sm text-gray-300 mt-1">Grass, Poison</p>
+              <>
+                {attr.map((data) => {
+                  return (
+                    <div class="w-full rounded-xl bg-gradient-to-br from-green-600 to-green-800 text-white p-4 relative overflow-hidden shadow-lg">
+                      {/* <!-- Background Pokéball watermark --> */}
+                      <div class="absolute right-2 bottom-2 opacity-10 text-[9rem] select-none pointer-events-none">
+                        ⬤
+                      </div>
+                      {/* <!-- Pokémon Name and Number --> */}
+                      <div class="relative z-10">
+                        <h2 class="text-2xl font-bold">{data.name}</h2>
+                        <p class="text-sm text-gray-200">#{data.id}</p>
+                        <p class="italic text-sm text-gray-300 mt-1">
+                          {data.types.map((ty) => {
+                            let types = "";
+                            types += ` ${ty.type.name}`;
+                            return <>{types}</>;
+                          })}
+                          {/* Grass, Poison */}
+                        </p>
 
-                  {/* <!-- Type icons --> */}
-                  <div class="flex space-x-2 mt-2">
-                    <span class="w-4 h-4 rounded-full bg-green-400"></span>
-                    <span class="w-4 h-4 rounded-full bg-purple-500"></span>
-                  </div>
-                </div>
-                {/* <!-- Pokémon Image --> */}
-                <img
-                  src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png"
-                  alt="Bulbasaur"
-                  class="absolute bottom-2 right-2 h-[100px] z-0 drop-shadow-xl"
-                />
-              </div>
+                        {/* <!-- Type icons --> */}
+                        <div class="flex space-x-2 mt-2">
+                          <span class="w-4 h-4 rounded-full bg-green-400"></span>
+                          <span class="w-4 h-4 rounded-full bg-purple-500"></span>
+                        </div>
+                      </div>
+                      {/* <!-- Pokémon Image --> */}
+                      <img
+                        src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${data.id}.png`}
+                        alt="Bulbasaur"
+                        class="absolute bottom-2 right-2 h-[100px] z-0 drop-shadow-xl"
+                      />
+                    </div>
+                  );
+                })}
+              </>
             )}
             {loopUse.type && (
               <div class="w-full rounded-xl bg-gradient-to-br from-green-600 to-green-800 text-white p-4 relative overflow-hidden shadow-lg">
@@ -241,14 +246,13 @@ function App() {
                       {/* <!-- Pokémon Name and Number --> */}
                       <div class="relative z-10">
                         <h2 class="text-2xl font-bold">{data.name}</h2>
-                        <p class="text-sm text-gray-200">#0001</p>
+                        <p class="text-sm text-gray-200">#{data.id}</p>
                         <p class="italic text-sm text-gray-300 mt-1">
                           {data.types.map((ty) => {
                             let types = "";
                             types += ` ${ty.type.name}`;
                             return <>{types}</>;
                           })}
-                          {/* Grass, Poison */}
                         </p>
 
                         {/* <!-- Type icons --> */}
