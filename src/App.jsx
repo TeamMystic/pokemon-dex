@@ -38,6 +38,12 @@ function App() {
   });
 
   useEffect(() => {
+    if (searchPokemon == "") {
+      setsearchPokemon(dataQuery.q);
+    }
+  }, [dataQuery]);
+
+  useEffect(() => {
     setloopUse({
       search: false,
       type: false,
@@ -107,6 +113,19 @@ function App() {
     }
   }, [searchPokemon]);
 
+  useEffect(() => {
+    const navigateGen = () => {
+      setTimeout(() => {
+        queryNavigate.current += `&gen=${selectedgen.join(".")}`;
+        navigate(`/${queryNavigate.current}`);
+      }, 2000);
+    };
+
+    if (queryNavigate.current.length > 0) {
+      navigateGen();
+    }
+  }, [selectedgen]);
+
   return (
     <>
       <Navbar />
@@ -131,7 +150,7 @@ function App() {
           />
           <div className="relative">
             <div className="top-24 w-52 text-right">
-              {JSON.stringify(selectedgen.join("."))}
+              {/* {JSON.stringify(selectedgen.join("."))} */}
 
               <Listbox value={selectedgen} onChange={setSelectedgen} multiple>
                 <ListboxButton className="text-white px-3 py-1 bg-gray-700 rounded-sm text-xl">
