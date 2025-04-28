@@ -106,10 +106,14 @@ function useSearchPokemon(query, toBottom) {
     const { data } = await axios.get(
       `https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0`
     );
+    // {
+    //   "name": "bulbasaur",
+    //            informasi pokemon yang lebih detail
+    //   "url": "https://pokeapi.co/api/v2/pokemon/1/"
+    // },
     if (dataQuery.type.length == 0) {
       setdataAllSearch(data.results);
     }
-    // new Promise.all(
     if (dataAllSearch.length == 0) {
       offset.current += 24;
       await data.results.map(async (d) => {
@@ -147,7 +151,6 @@ function useSearchPokemon(query, toBottom) {
         }
       });
     }
-    // );
   };
 
   // untuk mencari pokemon berdasarkan gen
