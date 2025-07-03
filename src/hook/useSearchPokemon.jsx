@@ -16,22 +16,49 @@ function useSearchPokemon(query, toBottom) {
   const [attr, setattr] = useState([]);
 
   const fetchPokemon = async () => {
-    const { data } = await axios.get(
-      `https://pokeapi.co/api/v2/pokemon?offset=${offset.current}&limit=24`
-    );
-    await data.results.map(async (d) => {
-      const { data } = await axios.get(d.url);
-      if (data.is_default) {
-        setsearch((prev) => {
-          return prev.find((t) => t.name === d.name)
-            ? [...prev]
-            : [...prev, data];
-        });
-      }
-    });
+    try {
+      const { data } = await axios.get(
+        `https://pokeapi.co/api/v2/pokemon?offset=${offset.current}&limit=24`
+      );
+
+      // Use Promise.all to avoid race conditions
+      const pokemonPromises = data.results.map(async (d) => {
+        try {
+          const { data: pokemonData } = await axios.get(d.url);
+          return pokemonData.is_default ? pokemonData : null;
+        } catch (error) {
+          console.error(`Error fetching ${d.name}:`, error);
+          return null;
+        }
+      });
+
+      const pokemonResults = await Promise.all(pokemonPromises);
+      const validPokemon = pokemonResults.filter(Boolean);
+
+      // Update state with batch update to avoid duplicates
+      setsearch((prev) => {
+        const existingNames = new Set(prev.map((p) => p.name));
+        const newPokemon = validPokemon.filter(
+          (p) => !existingNames.has(p.name)
+        );
+        return [...prev, ...newPokemon];
+      });
+    } catch (error) {
+      console.error("Error fetching pokemon list:", error);
+    }
   };
 
   const setInQuery = () => {
+    // Reset dataQuery first
+    setdataQuery({
+      q: "",
+      gen: [],
+      type: [],
+      attr: [],
+    });
+
+    if (!query) return;
+
     const arrayQuery = query.split("&");
     arrayQuery.map((data) => {
       data.includes("q=") &&
@@ -103,277 +130,344 @@ function useSearchPokemon(query, toBottom) {
 
   // untuk mencari pokemon semua pokemon
   const searchAll = async () => {
-    const { data } = await axios.get(
-      `https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0`
-    );
-    // {
-    //   "name": "bulbasaur",
-    //            informasi pokemon yang lebih detail
-    //   "url": "https://pokeapi.co/api/v2/pokemon/1/"
-    // },
-    if (dataQuery.type.length == 0) {
-      setdataAllSearch(data.results);
-    }
-    if (dataAllSearch.length == 0) {
-      offset.current += 24;
-      await data.results.map(async (d) => {
-        if (d.name.includes(dataQuery.q.toLowerCase())) {
-          const { data } = await axios.get(d.url);
-          if (data.is_default) {
-            if (dataQuery.type.length > 0) {
-              setdataAllSearch((prev) => {
-                return [...prev, data];
-              });
-            } else {
-              setsearch((prev) => {
-                return dataQuery.type.length > 0 || dataQuery.attr.length > 0
-                  ? [...prev, data]
-                  : prev.length < offset.current
-                  ? [...prev, data]
-                  : [...prev];
-              });
-            }
+    try {
+      const { data } = await axios.get(
+        `https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0`
+      );
+
+      if (dataQuery.type.length == 0) {
+        setdataAllSearch(data.results);
+      }
+
+      if (dataAllSearch.length == 0) {
+        offset.current += 24;
+
+        // Filter Pokemon that match the query
+        const filteredPokemon = data.results.filter((d) =>
+          d.name.includes(dataQuery.q.toLowerCase())
+        );
+
+        // Use Promise.all to avoid race conditions
+        const pokemonPromises = filteredPokemon.map(async (d) => {
+          try {
+            const { data: pokemonData } = await axios.get(d.url);
+            return pokemonData.is_default ? pokemonData : null;
+          } catch (error) {
+            console.error(`Error fetching ${d.name}:`, error);
+            return null;
           }
+        });
+
+        const pokemonResults = await Promise.all(pokemonPromises);
+        const validPokemon = pokemonResults.filter(Boolean);
+
+        if (dataQuery.type.length > 0) {
+          setdataAllSearch((prev) => {
+            const existingNames = new Set(prev.map((p) => p.name));
+            const newPokemon = validPokemon.filter(
+              (p) => !existingNames.has(p.name)
+            );
+            return [...prev, ...newPokemon];
+          });
+        } else {
+          setsearch((prev) => {
+            const existingNames = new Set(prev.map((p) => p.name));
+            const newPokemon = validPokemon
+              .filter((p) => !existingNames.has(p.name))
+              .slice(0, Math.max(0, offset.current - prev.length));
+            return [...prev, ...newPokemon];
+          });
         }
-      });
-    } else {
-      dataAllSearch.map(async (d) => {
-        if (d.name.includes(dataQuery.q.toLowerCase())) {
-          const { data } = await axios.get(d.url);
-          data.is_default &&
-            setsearch((prev) => {
-              return prev.find((t) => t.name === d.name)
-                ? [...prev]
-                : prev.length < offset.current
-                ? [...prev, data]
-                : [...prev];
-            });
-        }
-      });
+      } else {
+        // Handle case when dataAllSearch already has data
+        const filteredPokemon = dataAllSearch.filter((d) =>
+          d.name.includes(dataQuery.q.toLowerCase())
+        );
+
+        const pokemonPromises = filteredPokemon.map(async (d) => {
+          try {
+            const { data: pokemonData } = await axios.get(d.url);
+            return pokemonData.is_default ? pokemonData : null;
+          } catch (error) {
+            console.error(`Error fetching ${d.name}:`, error);
+            return null;
+          }
+        });
+
+        const pokemonResults = await Promise.all(pokemonPromises);
+        const validPokemon = pokemonResults.filter(Boolean);
+
+        setsearch((prev) => {
+          const existingNames = new Set(prev.map((p) => p.name));
+          const newPokemon = validPokemon
+            .filter((p) => !existingNames.has(p.name))
+            .slice(0, Math.max(0, offset.current - prev.length));
+          return [...prev, ...newPokemon];
+        });
+      }
+    } catch (error) {
+      console.error("Error in searchAll:", error);
     }
   };
 
   // untuk mencari pokemon berdasarkan gen
   const searchByGen = async () => {
-    if (dataAllSearch.length == 0) {
-      offset.current += 24;
-      dataQuery.gen.map(async (g) => {
-        const { data } = await axios.get(
-          `https://pokeapi.co/api/v2/generation/${g}`
-        );
+    try {
+      if (dataAllSearch.length == 0) {
+        offset.current += 24;
+
+        const genPromises = dataQuery.gen.map(async (g) => {
+          try {
+            const { data } = await axios.get(
+              `https://pokeapi.co/api/v2/generation/${g}`
+            );
+            return data.pokemon_species;
+          } catch (error) {
+            console.error(`Error fetching generation ${g}:`, error);
+            return [];
+          }
+        });
+
+        const genResults = await Promise.all(genPromises);
+        const allSpecies = genResults.flat();
+
+        // Update dataAllSearch with unique species
         setdataAllSearch((prev) => {
-          return prev.concat(data.pokemon_species);
+          const existingNames = new Set(prev.map((p) => p.name));
+          const newSpecies = allSpecies.filter(
+            (s) => !existingNames.has(s.name)
+          );
+          return [...prev, ...newSpecies];
         });
-        await data.pokemon_species?.map(async (d) => {
-          if (dataQuery.q.length > 0) {
-            if (d.name.includes(dataQuery.q)) {
-              const { data } = await axios.get(d.url);
-              data.varieties.map(async (t) => {
-                if (t.is_default) {
-                  const { data } = await axios.get(t.pokemon.url);
-                  const data3 = await data;
-                  if (dataQuery.type.length > 0) {
-                    setdataAllSearch((prev) => {
-                      return [...prev, data3];
-                    });
-                  } else {
-                    setsearch((prev) => {
-                      return prev.length < offset.current
-                        ? [...prev, data3]
-                        : [...prev];
-                    });
-                  }
-                }
-              });
+
+        // Filter species based on query
+        const filteredSpecies =
+          dataQuery.q.length > 0
+            ? allSpecies.filter((d) => d.name.includes(dataQuery.q))
+            : allSpecies;
+
+        const pokemonPromises = filteredSpecies.map(async (d) => {
+          try {
+            const { data: speciesData } = await axios.get(d.url);
+            const defaultVariety = speciesData.varieties.find(
+              (v) => v.is_default
+            );
+            if (defaultVariety) {
+              const { data: pokemonData } = await axios.get(
+                defaultVariety.pokemon.url
+              );
+              return pokemonData;
             }
-          } else {
-            const { data } = await axios.get(d.url);
-            data.varieties.map(async (t) => {
-              if (t.is_default) {
-                const { data } = await axios.get(t.pokemon.url);
-                const data3 = await data;
-                if (dataQuery.type.length > 0) {
-                  setdataAllSearch((prev) => {
-                    return [...prev, data3];
-                  });
-                } else {
-                  setsearch((prev) => {
-                    return prev.length < offset.current
-                      ? [...prev, data3]
-                      : [...prev];
-                  });
-                }
-              }
-            });
+            return null;
+          } catch (error) {
+            console.error(`Error fetching ${d.name}:`, error);
+            return null;
           }
         });
-      });
-    } else {
-      dataAllSearch?.map(async (d) => {
-        if (dataQuery.q.length > 0) {
-          if (d.name.includes(dataQuery.q)) {
-            const { data } = await axios.get(d.url);
-            data.varieties.map(async (t) => {
-              if (t.is_default) {
-                const { data } = await axios.get(t.pokemon.url);
-                setsearch((prev) => {
-                  return prev.find((t) => t.name === d.name)
-                    ? [...prev]
-                    : prev.length < offset.current
-                    ? [...prev, data]
-                    : [...prev];
-                });
-              }
-            });
-          }
+
+        const pokemonResults = await Promise.all(pokemonPromises);
+        const validPokemon = pokemonResults.filter(Boolean);
+
+        if (dataQuery.type.length > 0) {
+          setdataAllSearch((prev) => {
+            const existingNames = new Set(prev.map((p) => p.name));
+            const newPokemon = validPokemon.filter(
+              (p) => !existingNames.has(p.name)
+            );
+            return [...prev, ...newPokemon];
+          });
         } else {
-          const { data } = await axios.get(d.url);
-          data.varieties.map(async (t) => {
-            if (t.is_default) {
-              const { data } = await axios.get(t.pokemon.url);
-              setsearch((prev) => {
-                return prev.find((t) => t.name === d.name)
-                  ? [...prev]
-                  : prev.length < offset.current
-                  ? [...prev, data]
-                  : [...prev];
-              });
-            }
+          setsearch((prev) => {
+            const existingNames = new Set(prev.map((p) => p.name));
+            const newPokemon = validPokemon
+              .filter((p) => !existingNames.has(p.name))
+              .slice(0, Math.max(0, offset.current - prev.length));
+            return [...prev, ...newPokemon];
           });
         }
-      });
+      } else {
+        // Filter from existing dataAllSearch
+        const filteredSpecies =
+          dataQuery.q.length > 0
+            ? dataAllSearch.filter((d) => d.name.includes(dataQuery.q))
+            : dataAllSearch;
+
+        const pokemonPromises = filteredSpecies.map(async (d) => {
+          try {
+            const { data: speciesData } = await axios.get(d.url);
+            const defaultVariety = speciesData.varieties.find(
+              (v) => v.is_default
+            );
+            if (defaultVariety) {
+              const { data: pokemonData } = await axios.get(
+                defaultVariety.pokemon.url
+              );
+              return pokemonData;
+            }
+            return null;
+          } catch (error) {
+            console.error(`Error fetching ${d.name}:`, error);
+            return null;
+          }
+        });
+
+        const pokemonResults = await Promise.all(pokemonPromises);
+        const validPokemon = pokemonResults.filter(Boolean);
+
+        setsearch((prev) => {
+          const existingNames = new Set(prev.map((p) => p.name));
+          const newPokemon = validPokemon
+            .filter((p) => !existingNames.has(p.name))
+            .slice(0, Math.max(0, offset.current - prev.length));
+          return [...prev, ...newPokemon];
+        });
+      }
+    } catch (error) {
+      console.error("Error in searchByGen:", error);
     }
   };
 
   const searchByType = async () => {
-    if (dataQuery.q || dataQuery.gen.length > 0) {
-      dataAllSearch.map((d) => {
-        if (dataQuery.type.length == 2) {
-          if (
-            d.types.find((element) =>
-              element.type.name.includes(dataQuery.type[0])
-            ) &&
-            d.types.find((element) =>
-              element.type.name.includes(dataQuery.type[1])
-            )
-          ) {
-            settype((prev) => {
-              return prev.find((e) => e.id === d.id)
-                ? [...prev]
-                : prev.length < offset.current
-                ? [...prev, d]
-                : [...prev];
-            });
-          }
-        } else {
-          if (
-            d.types.find((element) =>
-              element.type.name.includes(dataQuery.type[0])
-            )
-          ) {
-            settype((prev) => {
-              return prev.find((e) => e.id === d.id)
-                ? [...prev]
-                : prev.length < offset.current
-                ? [...prev, d]
-                : [...prev];
-            });
-          }
-        }
-      });
-    } else {
-      if (dataAllSearch.length == 0) {
-        offset.current += 24;
-        phase2.current = true;
-      }
-
-      if (dataAllSearch.length > 0) {
-        dataAllSearch.map((data) => {
+    try {
+      if (dataQuery.q || dataQuery.gen.length > 0) {
+        // Filter from existing dataAllSearch
+        const filteredPokemon = dataAllSearch.filter((d) => {
           if (dataQuery.type.length == 2) {
-            if (
-              data.types.find((element) =>
+            return (
+              d.types.find((element) =>
                 element.type.name.includes(dataQuery.type[0])
               ) &&
-              data.types.find((element) =>
+              d.types.find((element) =>
                 element.type.name.includes(dataQuery.type[1])
               )
-            ) {
-              settype((prev) => {
-                return prev.find((t) => t.id === data.id)
-                  ? [...prev]
-                  : prev.length < offset.current
-                  ? [...prev, data]
-                  : [...prev];
-              });
-            }
+            );
           } else {
-            settype((prev) => {
-              return prev.find((t) => t.id === data.id)
-                ? [...prev]
-                : prev.length < offset.current
-                ? [...prev, data]
-                : [...prev];
-            });
+            return d.types.find((element) =>
+              element.type.name.includes(dataQuery.type[0])
+            );
           }
         });
-      }
 
-      if (dataAllSearch.length == 0) {
-        dataQuery.type.map(async (t) => {
-          const { data } = await axios.get(
-            `https://pokeapi.co/api/v2/type/${t}`
-          );
-          await data.pokemon.map(async (d) => {
-            const { data } = await axios.get(d.pokemon.url);
-            if (data.is_default) {
-              if (dataAllSearch.length == 0 && dataQuery.attr.length == 0) {
-                setdataAllSearch((prev) => {
-                  return [...prev, data];
-                });
-              }
+        settype((prev) => {
+          const existingIds = new Set(prev.map((p) => p.id));
+          const newPokemon = filteredPokemon
+            .filter((p) => !existingIds.has(p.id))
+            .slice(0, Math.max(0, offset.current - prev.length));
+          return [...prev, ...newPokemon];
+        });
+      } else {
+        if (dataAllSearch.length == 0) {
+          offset.current += 24;
+          phase2.current = true;
+        }
 
-              if (dataQuery.type.length == 2) {
-                if (
-                  data.types.find((element) =>
-                    element.type.name.includes(dataQuery.type[0])
-                  ) &&
-                  data.types.find((element) =>
-                    element.type.name.includes(dataQuery.type[1])
-                  )
-                ) {
-                  if (dataAllSearch.length == 0 && dataQuery.attr.length > 0) {
-                    setdataAllSearch((prev) => {
-                      return [...prev, data];
-                    });
-                  } else {
-                    settype((prev) => {
-                      return prev.find((t) => t.name === d.name)
-                        ? [...prev]
-                        : prev.length < offset.current
-                        ? [...prev, data]
-                        : [...prev];
-                    });
-                  }
-                }
-              } else {
-                if (dataAllSearch.length == 0 && dataQuery.attr.length > 0) {
-                  setdataAllSearch((prev) => {
-                    return [...prev, data];
-                  });
-                } else {
-                  settype((prev) => {
-                    return prev.find((t) => t.name === d.name)
-                      ? [...prev]
-                      : prev.length < offset.current
-                      ? [...prev, data]
-                      : [...prev];
-                  });
-                }
-              }
+        if (dataAllSearch.length > 0) {
+          // Filter from existing dataAllSearch
+          const filteredPokemon = dataAllSearch.filter((data) => {
+            if (dataQuery.type.length == 2) {
+              return (
+                data.types.find((element) =>
+                  element.type.name.includes(dataQuery.type[0])
+                ) &&
+                data.types.find((element) =>
+                  element.type.name.includes(dataQuery.type[1])
+                )
+              );
+            } else {
+              return data.types.find((element) =>
+                element.type.name.includes(dataQuery.type[0])
+              );
             }
           });
-        });
+
+          settype((prev) => {
+            const existingIds = new Set(prev.map((p) => p.id));
+            const newPokemon = filteredPokemon
+              .filter((p) => !existingIds.has(p.id))
+              .slice(0, Math.max(0, offset.current - prev.length));
+            return [...prev, ...newPokemon];
+          });
+        }
+
+        if (dataAllSearch.length == 0) {
+          // Fetch from API
+          const typePromises = dataQuery.type.map(async (t) => {
+            try {
+              const { data } = await axios.get(
+                `https://pokeapi.co/api/v2/type/${t}`
+              );
+              return data.pokemon;
+            } catch (error) {
+              console.error(`Error fetching type ${t}:`, error);
+              return [];
+            }
+          });
+
+          const typeResults = await Promise.all(typePromises);
+          const allPokemon = typeResults.flat();
+
+          // Get unique Pokemon
+          const uniquePokemon = new Map();
+          allPokemon.forEach((p) => {
+            if (!uniquePokemon.has(p.pokemon.name)) {
+              uniquePokemon.set(p.pokemon.name, p);
+            }
+          });
+
+          const pokemonPromises = Array.from(uniquePokemon.values()).map(
+            async (d) => {
+              try {
+                const { data: pokemonData } = await axios.get(d.pokemon.url);
+                return pokemonData.is_default ? pokemonData : null;
+              } catch (error) {
+                console.error(`Error fetching ${d.pokemon.name}:`, error);
+                return null;
+              }
+            }
+          );
+
+          const pokemonResults = await Promise.all(pokemonPromises);
+          const validPokemon = pokemonResults.filter(Boolean);
+
+          // Filter by type requirements
+          const filteredPokemon = validPokemon.filter((data) => {
+            if (dataQuery.type.length == 2) {
+              return (
+                data.types.find((element) =>
+                  element.type.name.includes(dataQuery.type[0])
+                ) &&
+                data.types.find((element) =>
+                  element.type.name.includes(dataQuery.type[1])
+                )
+              );
+            } else {
+              return data.types.find((element) =>
+                element.type.name.includes(dataQuery.type[0])
+              );
+            }
+          });
+
+          if (dataQuery.attr.length == 0) {
+            setdataAllSearch((prev) => {
+              const existingNames = new Set(prev.map((p) => p.name));
+              const newPokemon = filteredPokemon.filter(
+                (p) => !existingNames.has(p.name)
+              );
+              return [...prev, ...newPokemon];
+            });
+          }
+
+          settype((prev) => {
+            const existingIds = new Set(prev.map((p) => p.id));
+            const newPokemon = filteredPokemon
+              .filter((p) => !existingIds.has(p.id))
+              .slice(0, Math.max(0, offset.current - prev.length));
+            return [...prev, ...newPokemon];
+          });
+        }
       }
+    } catch (error) {
+      console.error("Error in searchByType:", error);
     }
   };
 
@@ -686,6 +780,8 @@ function useSearchPokemon(query, toBottom) {
     phase2.current = false;
     setdataAllSearch([]);
     setsearch([]);
+    settype([]);
+    setattr([]);
 
     if (query == undefined) {
       fetchPokemon();
@@ -697,14 +793,7 @@ function useSearchPokemon(query, toBottom) {
   }, [dataQuery]);
 
   useEffect(() => {
-    if (
-      query !== undefined &&
-      search.length == 0 &&
-      dataQuery.q == "" &&
-      dataQuery.gen.length == 0 &&
-      dataQuery.type.length == 0 &&
-      dataQuery.attr.length == 0
-    ) {
+    if (query !== undefined) {
       setInQuery();
     }
 
@@ -717,7 +806,7 @@ function useSearchPokemon(query, toBottom) {
         }
       }, 1500);
     }
-  }, [search, dataAllSearch]);
+  }, [search, dataAllSearch, query]);
 
   useEffect(() => {
     setTimeout(() => {

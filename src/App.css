@@ -1,1 +1,54 @@
 @import "tailwindcss";
+
+/* Toast animations */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* Type selector disabled state */
+.type-option-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+.type-option-disabled:hover {
+  background-color: inherit !important;
+}
+
+/* Enhanced type selector button */
+.type-selector-button {
+  position: relative;
+}
+
+.type-selector-button::after {
+  content: "";
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.type-selector-button:hover::after {
+  opacity: 1;
+}
